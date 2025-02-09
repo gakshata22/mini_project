@@ -1,53 +1,68 @@
-from flask import Flask, request, render_template_string, send_file
-import io
+from flask import Flask, request, render_template, redirect, url_for
+import cv2
+import numpy as np
+import joblib
+import os
+from tensorflow.keras.models import load_model
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# HTML template for the upload form
-upload_form = '''
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Upload Image</title>
-  </head>
-  <body>
-    <h1>Upload an Image</h1>
-    <form method="POST" enctype="multipart/form-data">
-      <input type="file" name="image">
-      <input type="submit" value="Upload">
-    </form>
-    {% if image_url %}
-    <h2>Uploaded Image:</h2>
-    <img src="{{ image_url }}" alt="Uploaded Image">
-    {% endif %}
-  </body>
-</html>
-'''
 
-# Variable to store the uploaded image
-uploaded_image = None
+cnn_model = load_model('cnn_feature_extractor.h5')
+model1_pipeline = joblib.load('model_pipeline.pkl')
+le = joblib.load('label_encoder.pkl')
+print("Classes in Label Encoder:", le.classes_)
+
+SIZE = 128
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_image():
-    global uploaded_image
+def home():
     image_url = None
+    result = None
+    
     if request.method == 'POST':
-        if 'image' not in request.files:
-            return 'No file part'
-        file = request.files['image']
+        if 'file' not in request.files:
+            return render_template('index.html', result="No file uploaded.")
+        
+        file = request.files['file']
+        
         if file.filename == '':
-            return 'No selected file'
+            return render_template('index.html', result="No file selected.")
+        
         if file:
-            uploaded_image = file.read()
-            image_url = '/image'
-    return render_template_string(upload_form, image_url=image_url)
-
-@app.route('/image')
-def serve_image():
-    if uploaded_image is None:
-        return 'No image uploaded', 404
-    return send_file(io.BytesIO(uploaded_image), mimetype='image/jpeg')
+            
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)  
+            
+            
+            img = cv2.imread(file_path)
+            if img is not None:
+                img = cv2.resize(img, (SIZE, SIZE))
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img = img / 255.0
+                img = np.expand_dims(img, axis=0)
+                
+               
+                features = cnn_model.predict(img)
+                print("Features shape in Flask app:", features.shape)
+                
+                prediction = model1_pipeline.predict(features)
+                prediction_label = le.inverse_transform([prediction[0]])
+                
+                
+                result = 'Melanoma Detected' if prediction_label[0] in ['Malignant', 'melanoma'] else 'No Melanoma'
+            
+            
+            image_url = url_for('static', filename=f'uploads/{filename}')
+    
+    return render_template('index.html', result=result, image_url=image_url)
 
 if __name__ == '__main__':
     app.run(debug=True)

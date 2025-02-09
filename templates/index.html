@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melanoma Detection</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #4e54c8, #8f94fb);
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+       
+        .container {
+            background-color: #ffffff;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            width: 380px;
+            transition: transform 0.3s;
+            z-index: 1;
+        }
+
+        .container:hover {
+            transform: scale(1.02);
+        }
+
+        h1 {
+            color: #4e54c8;
+            font-size: 26px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        p.description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #555;
+            font-size: 15px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            transition: border-color 0.3s, background-color 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #4e54c8;
+            background-color: #eef1ff;
+        }
+
+       
+        .preview {
+            margin-top: 15px;
+            width: 180px;
+            height: 180px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: none;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        .preview.show {
+            display: block;
+            transform: scale(1.05);
+            opacity: 1;
+        }
+
+        input[type="submit"] {
+            background-color: #4e54c8;
+            color: #ffffff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        input[type="submit"]:hover {
+            background-color: #3c42a1;
+            transform: translateY(-2px);
+        }
+
+        .result {
+            margin-top: 25px;
+            font-size: 18px;
+            color: #4e54c8;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Melanoma Detection</h1>
+        
+        <form action="/" method="POST" enctype="multipart/form-data">
+            <label for="file">Upload an Image:</label>
+            <input type="file" id="file" name="file" accept="image/*" onchange="previewImage(event)">
+            <img id="imagePreview" class="preview {{ 'show' if image_url else '' }}" src="{{ image_url if image_url else '' }}" alt="Image Preview">
+            <input type="submit" value="Predict">
+        </form>
+
+        <div id="result" class="result">
+            {% if result %}
+                <h2>Prediction Result: {{ result }}</h2>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function previewImage(event) {
+            const image = document.getElementById('imagePreview');
+            image.src = URL.createObjectURL(event.target.files[0]);
+            image.classList.add("show");
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = "<h2>File selected</h2>";
+        }
+    </script>
+</body>
+</html>
